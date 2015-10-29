@@ -24,30 +24,3 @@
 #' a strategy for system predictor identification, Journal of Hydrology,
 #' 239(1-4), 232-239, doi:10.1016/S0022-1694(00)00346-2.
 "ar9"
-ar9_dat <- function(n_cases = 1000, buffer = 500, n_inputs = 15) {
-
-  x <- y <- x_tmp <- vector()
-  for (i in 1:(n_cases + buffer)) {
-    # generate inputs
-    if(i == 1) {
-      x_tmp <- runif(n_inputs)
-    } else {
-      x_tmp[1] <- y[i - 1]
-      x_tmp[-1] <- x[i - 1,-n_inputs]
-    }
-
-  # compute y
-    y_tmp <- 0.3 * x_tmp[1] - 0.6 * x_tmp[4] - 0.5 * x_tmp[9] + rnorm(1, sd = 1)
-
-    x <- rbind(x, x_tmp)
-    y <- c(y, y_tmp)
-  }
-  # write x and y to output file
-  ar9 <- as.data.frame(cbind(round(x, 4), round(y, 4)))
-  names(ar9) <- c(paste("x_t-", 1:n_inputs, sep = ""), "x_t")
-  # discard buffer samples
-  ar9 <- ar9[-(1:buffer),]
-  row.names(ar9) <- 1:n_cases
-  devtools::use_data(ar9)
-  ar9
-}
