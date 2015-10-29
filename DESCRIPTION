@@ -9,6 +9,7 @@ Description: Methods and tools for analysing and validating the outputs
     and modelled functions of artificial neural networks (ANNs) in terms
     of predictive, replicative and structural validity. Also provides a
     method for fitting feed-forward ANNs with a single hidden layer.
+Depends: R (>= 3.1.0)
 Imports: moments
 Suggests: nnet,
     knitr,

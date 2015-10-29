@@ -19,10 +19,12 @@
 #'    sensitivity analyses useful for structural validation cannot be performed
 #'    if it is missing.
 #' @param npar   (optional) integer; number of model parameters (ANN weights).
-#'    If not supplied, several predictive validation metrics will not be
+#'    If not supplied, validation metrics AIC and BIC will not be
 #'    computed.
-# @param \dots    Arguments to be passed to different validation methods,
-#     see specific formulations for details.
+#' @param na.rm   (optional) logical; should missing values (including NaN)
+#'    be removed from calculations?
+#' @param \dots   arguments to be passed to different validann methods,
+#'     see specific formulations for details.
 #' @return   list object of class `validann' with components dependent on
 #'    arguments passed to \code{validann} function:
 #'
@@ -86,21 +88,22 @@
 #' sensitivity analysis (useful for structural validation) will only be carried
 #' out if \code{net} is of class `ann'.
 #'
-#' If \code{obs} and \code{sim} data are supplied, predictive and replicative
-#' validation metrics are computed based on these. Otherwise, these results
-#' are computed based on \code{obs} and \code{sim} datasets derived from the
-#' \code{net} object (i.e. the pre-processed observed and simulated data used
-#' for training \code{net}). As such, both \code{obs} and \code{sim} must be
-#' supplied if validation is to be based on data not used for training or
-#' unprocessed training data. If either \code{obs} or \code{sim} is specified
-#' but the other isn't, both \code{obs} and \code{sim} will be derived from
-#' \code{net} if supplied. Similarly, this will occur if \code{obs} and
-#' \code{sim} are of different lengths.
+#' If \code{obs} and \code{sim} data are supplied, validation metrics are
+#' computed based on these. Otherwise, metrics and statistics are computed
+#' based on \code{obs} and \code{sim} datasets derived from the
+#' \code{net} object (i.e. the data used to fit \code{net} and the fitted
+#' values). As such, both \code{obs} and \code{sim} must be
+#' supplied if validation is to be based either on data not used for training or
+#' on unprocessed training data (if training data were preprocessed). If either
+#' \code{obs} or \code{sim} is specified but the other isn't, both \code{obs}
+#' and \code{sim} will be derived from \code{net} if supplied (and a warning
+#' will be given). Similarly, this will occur if \code{obs} and \code{sim} are
+#' of different lengths.
 #'
 #' If \code{net} is not supplied, both \code{obs} and
 #' \code{sim} are required and structural validation metrics will not be
 #' computed. This may be necessary if validating an ANN model not built using
-#' either the \code{\link[nnet]{nnet}} or \code{ann} functions. In this case,
+#' either the \code{\link[nnet]{nnet}} or \code{\link{ann}} functions. In this case,
 #' it is necessary to also supply \code{npar} for AIC and BIC metrics to be
 #' returned.
 #'
@@ -145,7 +148,7 @@
 #' x <- x[, c(1,4,9)]
 #'
 #' obs <- y
-#' sim <- predict(fit, newdata = x)$values
+#' sim <- predict(fit, newdata = x)
 #' results <- validann(fit, obs = obs, sim = sim, x = x)
 #'
 #' # get validation results for `obs' and `sim' data without ANN model.
@@ -165,58 +168,15 @@
 #'
 #' @export
 #--------------------------------------------------
-validann <- function(net, ...) {
+validann <- function(...) {
 
     UseMethod("validann")
-}
-# -------------------------------------------------------------------------------
-#' @describeIn validann Useful when ANN model has not been developed using
-#' either \code{\link{ann}} or \code{\link[nnet]{nnet}}. Only metrics and
-#' statistics for predictive and replicative validation are computed.
-#' @export
-validann.default <- function(obs, sim, npar, na.rm = TRUE) {
-
-  results <- list()
-
-  if (missing(obs) | missing(sim)) {
-    stop("Required 'obs' or 'sim' data missing")
-  } else if (length(obs) != length(sim)) {
-    stop("'obs' and 'sim' must be the same length")
-  }
-  results$predictive <- FALSE
-  results$replicative <- FALSE
-  results$structural <- FALSE
-
-  # Test for predictive validity.
-  #----
-  if (missing(npar)) {
-    npar <- NULL
-  }
-  valid_type <- "predictive"
-  packageStartupMessage("Computing ", valid_type, " validity...")
-  results_pred <- predictive_valid(obs, sim, npar, na.rm)
-  results <- append(results, results_pred)
-  results$predictive <- TRUE
-  packageStartupMessage("Done.")
-
-  # Test for replicative validity.
-  #----
-  valid_type <- "replicative"
-  packageStartupMessage("Computing ", valid_type, " validity...")
-  results_rep <- replicative_valid(obs, sim, na.rm)
-  results <- append(results, results_rep)
-  results$replicative <- TRUE
-  packageStartupMessage("Done.")
-
-  class(results) <- "validann"
-
-  return(results)
 }
 # -------------------------------------------------------------------------------
 #' @describeIn validann Compute validation metrics when \code{net}
 #' is of class `ann'.
 #' @export
-validann.ann <- function(net, obs, sim, x, na.rm = TRUE) {
+validann.ann <- function(net, obs, sim, x, na.rm = TRUE, ...) {
 
   results <- list()
 
@@ -280,7 +240,7 @@ validann.ann <- function(net, obs, sim, x, na.rm = TRUE) {
 #' @describeIn validann Compute validation metrics when \code{net}
 #' is of class `nnet'.
 #' @export
-validann.nnet <- function(net, obs, sim, x, na.rm = TRUE) {
+validann.nnet <- function(net, obs, sim, x, na.rm = TRUE, ...) {
 
   results <- list()
 
@@ -335,6 +295,49 @@ validann.nnet <- function(net, obs, sim, x, na.rm = TRUE) {
   results_struct <- structural_valid(net, x)
   results <- append(results, results_struct)
   results$structural <- TRUE
+  packageStartupMessage("Done.")
+
+  class(results) <- "validann"
+
+  return(results)
+}
+# -------------------------------------------------------------------------------
+#' @describeIn validann Useful when ANN model has not been developed using
+#' either \code{\link{ann}} or \code{\link[nnet]{nnet}}. Only metrics and
+#' statistics for predictive and replicative validation are computed.
+#' @export
+validann.default <- function(obs, sim, npar, na.rm = TRUE, ...) {
+
+  results <- list()
+
+  if (missing(obs) | missing(sim)) {
+    stop("Required 'obs' or 'sim' data missing")
+  } else if (length(obs) != length(sim)) {
+    stop("'obs' and 'sim' must be the same length")
+  }
+  results$predictive <- FALSE
+  results$replicative <- FALSE
+  results$structural <- FALSE
+
+  # Test for predictive validity.
+  #----
+  if (missing(npar)) {
+    npar <- NULL
+  }
+  valid_type <- "predictive"
+  packageStartupMessage("Computing ", valid_type, " validity...")
+  results_pred <- predictive_valid(obs, sim, npar, na.rm)
+  results <- append(results, results_pred)
+  results$predictive <- TRUE
+  packageStartupMessage("Done.")
+
+  # Test for replicative validity.
+  #----
+  valid_type <- "replicative"
+  packageStartupMessage("Computing ", valid_type, " validity...")
+  results_rep <- replicative_valid(obs, sim, na.rm)
+  results <- append(results, results_rep)
+  results$replicative <- TRUE
   packageStartupMessage("Done.")
 
   class(results) <- "validann"
@@ -535,7 +538,7 @@ sens_anal <- function(net, x) {
       y_hat <- cbind(y_hat, predict(net, newdata = x_tmp,
                                     type = "raw"))
     } else if (inherits(net, "ann")) {
-      y_hat <- cbind(y_hat, predict(net, newdata = x_tmp)$values)
+      y_hat <- cbind(y_hat, predict(net, newdata = x_tmp))
     }
   }
   colnames(y_hat) <- colnames(x)

@@ -7,13 +7,13 @@
 \alias{validann.nnet}
 \title{Validate Artificial Neural Networks.}
 \usage{
-validann(net, ...)
+validann(...)
 
-\method{validann}{default}(obs, sim, npar, na.rm = TRUE)
+\method{validann}{ann}(net, obs, sim, x, na.rm = TRUE, ...)
 
-\method{validann}{ann}(net, obs, sim, x, na.rm = TRUE)
+\method{validann}{nnet}(net, obs, sim, x, na.rm = TRUE, ...)
 
-\method{validann}{nnet}(net, obs, sim, x, na.rm = TRUE)
+\method{validann}{default}(obs, sim, npar, na.rm = TRUE, ...)
 }
 \arguments{
 \item{net}{an object of class `ann' (as returned by function
@@ -27,15 +27,21 @@ numbers of nodes in each layer, for example.}
 used to compute model fit statistics. Optional if \code{net} is supplied
 (see `Details').}
 
-\item{npar}{(optional) integer; number of model parameters (ANN weights).
-If not supplied, several predictive validation metrics will not be
-computed.}
-
 \item{x}{(optional) matrix, data frame or vector of input data used for
 fitting \code{net} object. A vector is considered to comprise examples of
 a single input or predictor variable. While \code{x} is optional,
 sensitivity analyses useful for structural validation cannot be performed
 if it is missing.}
+
+\item{na.rm}{(optional) logical; should missing values (including NaN)
+be removed from calculations?}
+
+\item{npar}{(optional) integer; number of model parameters (ANN weights).
+If not supplied, validation metrics AIC and BIC will not be
+computed.}
+
+\item{\dots}{arguments to be passed to different validann methods,
+see specific formulations for details.}
 }
 \value{
 list object of class `validann' with components dependent on
@@ -107,35 +113,36 @@ of class `ann' (as returned by \code{\link{ann}}) or `nnet' (as returned by
 sensitivity analysis (useful for structural validation) will only be carried
 out if \code{net} is of class `ann'.
 
-If \code{obs} and \code{sim} data are supplied, predictive and replicative
-validation metrics are computed based on these. Otherwise, these results
-are computed based on \code{obs} and \code{sim} datasets derived from the
-\code{net} object (i.e. the pre-processed observed and simulated data used
-for training \code{net}). As such, both \code{obs} and \code{sim} must be
-supplied if validation is to be based on data not used for training or
-unprocessed training data. If either \code{obs} or \code{sim} is specified
-but the other isn't, both \code{obs} and \code{sim} will be derived from
-\code{net} if supplied. Similarly, this will occur if \code{obs} and
-\code{sim} are of different lengths.
+If \code{obs} and \code{sim} data are supplied, validation metrics are
+computed based on these. Otherwise, metrics and statistics are computed
+based on \code{obs} and \code{sim} datasets derived from the
+\code{net} object (i.e. the data used to fit \code{net} and the fitted
+values). As such, both \code{obs} and \code{sim} must be
+supplied if validation is to be based either on data not used for training or
+on unprocessed training data (if training data were preprocessed). If either
+\code{obs} or \code{sim} is specified but the other isn't, both \code{obs}
+and \code{sim} will be derived from \code{net} if supplied (and a warning
+will be given). Similarly, this will occur if \code{obs} and \code{sim} are
+of different lengths.
 
 If \code{net} is not supplied, both \code{obs} and
 \code{sim} are required and structural validation metrics will not be
 computed. This may be necessary if validating an ANN model not built using
-either the \code{\link[nnet]{nnet}} or \code{ann} functions. In this case,
+either the \code{\link[nnet]{nnet}} or \code{\link{ann}} functions. In this case,
 it is necessary to also supply \code{npar} for AIC and BIC metrics to be
 returned.
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{default}: Useful when ANN model has not been developed using
-either \code{\link{ann}} or \code{\link[nnet]{nnet}}. Only metrics and
-statistics for predictive and replicative validation are computed.
-
 \item \code{ann}: Compute validation metrics when \code{net}
 is of class `ann'.
 
 \item \code{nnet}: Compute validation metrics when \code{net}
 is of class `nnet'.
+
+\item \code{default}: Useful when ANN model has not been developed using
+either \code{\link{ann}} or \code{\link[nnet]{nnet}}. Only metrics and
+statistics for predictive and replicative validation are computed.
 }}
 \examples{
 # get validation results for 1-hidden node `ann' model fitted to ar9 data
@@ -158,7 +165,7 @@ x <- ar9[samp, -ncol(ar9)]
 x <- x[, c(1,4,9)]
 
 obs <- y
-sim <- predict(fit, newdata = x)$values
+sim <- predict(fit, newdata = x)
 results <- validann(fit, obs = obs, sim = sim, x = x)
 
 # get validation results for `obs' and `sim' data without ANN model.

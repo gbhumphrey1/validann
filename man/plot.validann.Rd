@@ -4,16 +4,16 @@
 \alias{plot.validann}
 \title{Plot ANN validation results.}
 \usage{
-\method{plot}{validann}(results, obs, sim, type = c("multi", "single"), ...)
+\method{plot}{validann}(x, obs, sim, type = c("multi", "single"), ...)
 }
 \arguments{
-\item{results}{object of class `validann' as returned
+\item{x}{object of class `validann' as returned
 by \code{\link{validann}}. This is a list comprising metrics and
 statistics that can be used for validating ANN models.}
 
 \item{obs,sim}{vectors comprising observed (\code{obs}) and simulated
 (\code{sim}) examples of a single response variable used for computing
-\code{results} object.}
+\code{x} object.}
 
 \item{type}{character string defining how plots should be displayed.
 The default is ``multi'' where multiple plots are displayed together
@@ -21,6 +21,8 @@ according to whether they are used for predictive, replicative or
 structural validation. For ``single'', each plot is displayed on its own.
 If the session is interactive, the user will be asked to confirm a new
 page whether \code{type} is ``single'' or ``multi''}
+
+\item{\dots}{Arguments to be passed to plot (not currently used).}
 }
 \description{
 Plot method for objects of class `validann'. Produces a series
@@ -29,37 +31,33 @@ Plot method for objects of class `validann'. Produces a series
 }
 \details{
 This function can be invoked by calling
-   \code{plot(results, obs, sim)} for an object \code{results} of class
+   \code{plot(x, obs, sim)} for an object \code{x} of class
    `validann'.
 
    To produce plots for all (predictive, replicative and structural)
-   types of validation metrics and statistics, \code{results$predictive},
-   \code{results$replicative} and \code{results$structural} must be
+   types of validation metrics and statistics, \code{x$predictive},
+   \code{x$replicative} and \code{x$structural} must be
    \code{TRUE} and, for replicative and structural validation, corresponding
    results must have been successfully computed by \code{\link{validann}}
-   and returned in object \code{results}.
+   and returned in object \code{x}.
 
-   If \code{results$predictive} is \code{TRUE}, a scatter plot, Q-Q plot and
+   If \code{x$predictive} is \code{TRUE}, a scatter plot, Q-Q plot and
    time/sample plot of observed (\code{obs}) versus predicted (\code{sim})
    data are produced.
 
-   If \code{results$replicative} is \code{TRUE} and \code{results$residuals}
+   If \code{x$replicative} is \code{TRUE} and \code{x$residuals}
    is not \code{NULL}, plots of the model residuals are produced including
    histogram, Q-Q plot (standardized residuals compared to standard normal),
    autocorrelation (acf), partial autocorrelation (pacf), standardized
    residual versus predicted output (i.e. \code{sim}) and standardized
    residual versus time/order of the data.
 
-   If \code{results$structural} is \code{TRUE} and results$y_hat is not
-   \code{NULL}, plots of the model residuals
-   are produced including histogram, Q-Q plot (standardized residuals
-   compared to standard normal), autocorrelation (acf),
-   partial autocorrelation (pacf), standardized residuals versus predicted
-   output (i.e. \code{sim}) and standardized residual versus time/order of
-   the data.
+   If \code{x$structural} is \code{TRUE} and \code{x$y_hat} is not
+   \code{NULL}, plots of the model response values versus percentiles of each
+   input are produced. If \code{x$rs} is not \code{NULL}
 
-   Setting \code{results$predictive}, \code{results$replicative} and/or
-   \code{results$structural} to \code{FALSE} prior to calling
+   Setting \code{x$predictive}, \code{x$replicative} and/or
+   \code{x$structural} to \code{FALSE} prior to calling
    \code{plot.validann} will turn off the respective validation plots.
 }
 \examples{
@@ -93,7 +91,7 @@ y <- ar9[samp, ncol(ar9)]
 x <- ar9[samp, -ncol(ar9)]
 x <- x[, c(1,4,9)]
 obs <- y
-sim <- predict(fit, newdata = x)$values
+sim <- predict(fit, newdata = x)
 results <- validann(fit, obs = obs, sim = sim, x = x)
 
 ## Plot predictive results only to file

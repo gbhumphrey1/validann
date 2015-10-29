@@ -6,15 +6,15 @@
 #' \code{y}.
 #'
 #' @param x  matrix, data frame or vector of numeric input values, with
-#' \code{ncol(x)} equal to the number of inputs/predictors and \code{nrow(x)}
-#' equal to the number of examples. A vector is considered to comprise examples
-#' of a single input or predictor variable.
+#'    \code{ncol(x)} equal to the number of inputs/predictors and \code{nrow(x)}
+#'    equal to the number of examples. A vector is considered to comprise examples
+#'    of a single input or predictor variable.
 #' @param y  matrix, data frame or vector of target values for examples.
 #' @param size number of hidden layer nodes. Can be zero.
 #' @param act_hid activation function to be used at the hidden layer.
-#' See `Details'.
+#'    See `Details'.
 #' @param act_out activation function to be used at the output layer.
-#' See `Details'.
+#'    See `Details'.
 #' @param Wts initial weight vector. If missing chosen at random.
 #' @param rang initial random weights on [-rang,rang]. Default value is 0.5.
 #' @param objfn objective function to be minimised when fitting weights.
@@ -27,36 +27,38 @@
 #'    ``CG'', ``L-BFGS-B'', ``SANN'' or ``Brent''. Can be abbreviated.
 #'    Default is ``BFGS''.
 #' @param trace logical. Should optimization be traced? Default = TRUE.
-#' @param ...  arguments to be passed to user-defined \code{objfn}.
+#' @param \dots  arguments to be passed to user-defined \code{objfn}.
 #' @return object of class `ann' with components:
 #' \item{wts}{best set of weights found.}
 #' \item{value}{value of fitting criterion.}
 #' \item{fitted.values}{fitted values for the training data.}
 #' \item{residuals}{residuals for the training data.}
-#' \item{convergence}{1 if the maximum number of iterations was reached,
-#' otherwise 0.}
+#' \item{convergence}{integer code returned by \code{\link[stats]{optim}}.
+#'    0 indicates successful completion, see \code{\link[stats]{optim}} for
+#'    possible error codes.}
 #' \item{derivs}{matrix of derivatives of hidden (columns \code{1:size})
-#' and output (final column) nodes.}
+#'    and output (final column) nodes.}
 #' @details
-#' The ``linear'' activation, or transfer, function is the
-#' identity function where the output of a node is equal to its input
-#' \eqn{f(x) = x}.
+#'    The ``linear'' activation, or transfer, function is the
+#'    identity function where the output of a node is equal to its input
+#'    \eqn{f(x) = x}.
 #'
-#' The ``sigmoid'' function is the standard logistic sigmoid function given by
-#' \eqn{f(x) = \frac{1}{1+e^{-x}}}{f(x) = 1 / (1 + exp(-x))}.
+#'    The ``sigmoid'' function is the standard logistic sigmoid function given
+#'    by \eqn{f(x) = \frac{1}{1+e^{-x}}}{f(x) = 1 / (1 + exp(-x))}.
 #'
-#' The ``tanh'' function is the hyperbolic tangent function given by
-#' \eqn{f(x) = \frac{e^{x}-e^{-x}}{e^{x}+e^{-x}}}{f(x) = (exp(x) - exp(-x)) / (exp(x) + exp(-x))}
+#'    The ``tanh'' function is the hyperbolic tangent function given by
+#'    \eqn{f(x) = \frac{e^{x}-e^{-x}}{e^{x}+e^{-x}}}{
+#'       f(x) = (exp(x) - exp(-x)) / (exp(x) + exp(-x))}
 #'
-#' The default configuration of activation functions is
-#' \code{act_hid = "sigmoid"} and \code{act_out = "linear"}.
+#'    The default configuration of activation functions is
+#'    \code{act_hid = "sigmoid"} and \code{act_out = "linear"}.
 #'
-#' Optimization (minimization) of the objective function (\code{objfn}) is
-#' performed by \code{\link[stats]{optim}} using the method specified.
+#'    Optimization (minimization) of the objective function (\code{objfn}) is
+#'    performed by \code{\link[stats]{optim}} using the method specified.
 #'
-#' Derivatives returned are first-order partial derivatives of the hidden and
-#' output nodes with respect to their inputs. These may be useful for
-#' sensitivity analyses.
+#'    Derivatives returned are first-order partial derivatives of the hidden and
+#'    output nodes with respect to their inputs. These may be useful for
+#'    sensitivity analyses.
 #'
 #' @seealso \code{\link{predict.ann}}, \code{\link{validann}}
 #'
@@ -179,7 +181,7 @@ ann <- function(x, y, size, act_hid = c("sigmoid", "tanh", "linear"),
   net$value <- tmp$value
   net$wts <- tmp$par
   net$convergence <- tmp$convergence
-  tmp <- predict.ann(net, x)
+  tmp <- predict(net, x, derivs = TRUE)
   net$fitted.values <- tmp$values
   net$derivs <- tmp$derivs
   tmp <- as.matrix(y - tmp$values)
@@ -198,34 +200,57 @@ sse <- function(y, y_hat) {
 #'
 #' @description Predict new examples using a trained neural network.
 
-#' @param object an object of class `ann' as returned by function \code{ann}.
-#' @param newdata matrix, data frame or vector of input data. A vector is
-#' considered to comprise examples of a single input or predictor variable.
-#' @return a list with components:
+#' @param object  an object of class `ann' as returned by function \code{ann}.
+#' @param newdata  matrix, data frame or vector of input data. A vector is
+#'    considered to comprise examples of a single input or predictor variable.
+#' @param derivs  (optional) logical; should derivatives of hidden and output nodes be
+#'    returned. Default is \code{FALSE}.
+#' @param \dots  additional arguments affecting the predictions produced (not
+#'    currently used).
+#' @return if \code{derivs = FALSE}, a vector of predictions is returned.
+#'
+#' Otherwise, a list with the following components is returned:
 #' \item{values}{matrix of values returned by the trained ANN.}
 #' \item{derivs}{matrix of derivatives of hidden (columns \code{1:object$size})
-#' and output (final column) nodes.}
+#'    and output (final column) nodes.}
 #' @details This function is a method for the generic function \code{predict()}
-#' for class `ann'. It can be invoked by calling \code{predict(x)} for an
-#' object \code{x} of class `ann', or directly by calling
-#' \code{predict.ann(x)} regardless of the class of \code{x}.
+#'    for class `ann'. It can be invoked by calling \code{predict(x)} for an
+#'    object \code{x} of class `ann'.
 #'
-#' Derivatives returned are useful for sensitivity analyses.
+#'    \code{predict.ann} produces predicted values, obtained by evaluating the
+#'    `ann' model given \code{newdata}, which contains the inputs to be used
+#'    for prediction. If \code{newdata} is omitted, the
+#'    predictions are based on the data used for the fit.
+#'
+#'    Derivatives may be returned for sensitivity analyses, for example.
 #'
 #' @seealso \code{\link{ann}}
 #'
 #' @examples
-#' ## Select new sample from ar9 dataset and use ann object `fit' to predict y.
-#' ## ---
+#' ## fit 1-hidden node `ann' model to ar9 data
+#' data("ar9")
 #' samp <- sample(1:1000, 200)
 #' y <- ar9[samp, ncol(ar9)]
 #' x <- ar9[samp, -ncol(ar9)]
 #' x <- x[, c(1,4,9)]
-#' sim <- predict(fit, newdata = x)$values
-#' obs <- y
+#'
+#' fit <- ann(x, y, size = 1, act_hid = "tanh", act_out = "linear", rang = 0.1)
+#'
+#' ## get model predictions based on a new sample of ar9 data.
+#' samp <- sample(1:1000, 200)
+#' y <- ar9[samp, ncol(ar9)]
+#' x <- ar9[samp, -ncol(ar9)]
+#' x <- x[, c(1,4,9)]
+#'
+#' sim <- predict(fit, newdata = x)
+#'
+#' ## if derivatives are required...
+#' tmp <- predict(fit, newdata = x, derivs = TRUE)
+#' sim <- tmp$values
+#' derivs <- tmp$derivs
 #' @export
 # ----
-predict.ann <- function(object, newdata) {
+predict.ann <- function(object, newdata, derivs = FALSE, ...) {
 
 # Description: This function runs the model and calculates the
 # objective function value for a particular set
@@ -235,6 +260,7 @@ predict.ann <- function(object, newdata) {
     stop("object not of class \"ann\"")
   if (missing(newdata)) {
     y_hat <- fitted(object)
+    return(y_hat)
   } else {
     x <- newdata
     if (is.vector(x)) {
@@ -273,17 +299,21 @@ predict.ann <- function(object, newdata) {
     }
   # Calculate model output and error
     y_hat <- Z[[object$layers]]
-    z_hat <- NULL
-    o_hat <- NULL
-    if (object$layers == 3)
-      z_hat <- der_actfn(Zin[[2]], object$act_fn[2])
-    if (object$layers == 3) {
-      o_hat <- der_actfn(Zin[[3]], object$act_fn[3])
+    if(derivs) {
+      z_hat <- NULL
+      o_hat <- NULL
+      if (object$layers == 3)
+        z_hat <- der_actfn(Zin[[2]], object$act_fn[2])
+      if (object$layers == 3) {
+        o_hat <- der_actfn(Zin[[3]], object$act_fn[3])
+      } else {
+        o_hat <- der_actfn(Zin[[2]], object$act_fn[2])
+      }
+      return(list(values = y_hat, derivs = cbind(z_hat, o_hat)))
     } else {
-      o_hat <- der_actfn(Zin[[2]], object$act_fn[2])
+      return(y_hat)
     }
   }
-  return(list(values = y_hat, derivs = cbind(z_hat, o_hat)))
 }
 # -------------------------------------------------------------------------------
 #' @title Return observed target values.
@@ -298,16 +328,25 @@ predict.ann <- function(object, newdata) {
 #' @examples
 #' # Get observed values of y used to train ann object `fit'.
 #' # ---
+#' data("ar9")
+#' samp <- sample(1:1000, 200)
+#' y <- ar9[samp, ncol(ar9)]
+#' x <- ar9[samp, -ncol(ar9)]
+#' x <- x[, c(1,4,9)]
+#' fit <- ann(x, y, size = 1, act_hid = "tanh", act_out = "linear", rang = 0.1)
 #' y_obs <- observed(fit)
+#' @export
 # --------
 observed <- function(object) {
   UseMethod("observed")
 }
 # -----------
+#' @export
 observed.ann <- function(object) {
   fitted(object) + residuals(object)
 }
 # -----------
+#' @export
 observed.nnet <- function(object) {
   fitted(object) + residuals(object)
 }

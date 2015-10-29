@@ -41,7 +41,7 @@ Default is ``BFGS''.}
 
 \item{trace}{logical. Should optimization be traced? Default = TRUE.}
 
-\item{...}{arguments to be passed to user-defined \code{objfn}.}
+\item{\dots}{arguments to be passed to user-defined \code{objfn}.}
 }
 \value{
 object of class `ann' with components:
@@ -49,10 +49,11 @@ object of class `ann' with components:
 \item{value}{value of fitting criterion.}
 \item{fitted.values}{fitted values for the training data.}
 \item{residuals}{residuals for the training data.}
-\item{convergence}{1 if the maximum number of iterations was reached,
-otherwise 0.}
+\item{convergence}{integer code returned by \code{\link[stats]{optim}}.
+   0 indicates successful completion, see \code{\link[stats]{optim}} for
+   possible error codes.}
 \item{derivs}{matrix of derivatives of hidden (columns \code{1:size})
-and output (final column) nodes.}
+   and output (final column) nodes.}
 }
 \description{
 Fits a single hidden layer ANN model to input data \code{x} and output data
@@ -60,24 +61,25 @@ Fits a single hidden layer ANN model to input data \code{x} and output data
 }
 \details{
 The ``linear'' activation, or transfer, function is the
-identity function where the output of a node is equal to its input
-\eqn{f(x) = x}.
+   identity function where the output of a node is equal to its input
+   \eqn{f(x) = x}.
 
-The ``sigmoid'' function is the standard logistic sigmoid function given by
-\eqn{f(x) = \frac{1}{1+e^{-x}}}{f(x) = 1 / (1 + exp(-x))}.
+   The ``sigmoid'' function is the standard logistic sigmoid function given
+   by \eqn{f(x) = \frac{1}{1+e^{-x}}}{f(x) = 1 / (1 + exp(-x))}.
 
-The ``tanh'' function is the hyperbolic tangent function given by
-\eqn{f(x) = \frac{e^{x}-e^{-x}}{e^{x}+e^{-x}}}{f(x) = (exp(x) - exp(-x)) / (exp(x) + exp(-x))}
+   The ``tanh'' function is the hyperbolic tangent function given by
+   \eqn{f(x) = \frac{e^{x}-e^{-x}}{e^{x}+e^{-x}}}{
+      f(x) = (exp(x) - exp(-x)) / (exp(x) + exp(-x))}
 
-The default configuration of activation functions is
-\code{act_hid = "sigmoid"} and \code{act_out = "linear"}.
+   The default configuration of activation functions is
+   \code{act_hid = "sigmoid"} and \code{act_out = "linear"}.
 
-Optimization (minimization) of the objective function (\code{objfn}) is
-performed by \code{\link[stats]{optim}} using the method specified.
+   Optimization (minimization) of the objective function (\code{objfn}) is
+   performed by \code{\link[stats]{optim}} using the method specified.
 
-Derivatives returned are first-order partial derivatives of the hidden and
-output nodes with respect to their inputs. These may be useful for
-sensitivity analyses.
+   Derivatives returned are first-order partial derivatives of the hidden and
+   output nodes with respect to their inputs. These may be useful for
+   sensitivity analyses.
 }
 \examples{
 ## fit 1-hidden node ann model with tanh activation at the hidden layer and
