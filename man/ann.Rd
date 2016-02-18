@@ -4,9 +4,10 @@
 \alias{ann}
 \title{Fit Artificial Neural Networks.}
 \usage{
-ann(x, y, size, act_hid = c("sigmoid", "tanh", "linear"),
-  act_out = c("linear", "sigmoid", "tanh"), Wts, rang = 0.5, objfn = sse,
-  method = "BFGS", trace = TRUE, ...)
+ann(x, y, size, act_hid = c("sigmoid", "tanh", "linear", "exp"),
+  act_out = c("linear", "sigmoid", "tanh", "exp"), Wts = NULL, rang = 0.5,
+  objfn = NULL, method = "BFGS", maxit = 1000, abstol = 1e-04,
+  reltol = 1e-08, trace = TRUE, ...)
 }
 \arguments{
 \item{x}{matrix, data frame or vector of numeric input values, with
@@ -24,29 +25,53 @@ See `Details'.}
 \item{act_out}{activation function to be used at the output layer.
 See `Details'.}
 
-\item{Wts}{initial weight vector. If missing chosen at random.}
+\item{Wts}{initial weight vector. If \code{NULL} chosen at random.}
 
-\item{rang}{initial random weights on [-rang,rang]. Default value is 0.5.}
+\item{rang}{initial random weights on [-rang,rang].
+Default value is 0.5.}
 
-\item{objfn}{objective function to be minimised when fitting weights.
-This function may be user-defined with the first two arguments
+\item{objfn}{objective function to be minimised when fitting
+weights. This function may be user-defined with the first two arguments
 corresponding to \code{y} (the observed target data) and \code{y_hat}
-(the ANN output). Default is \code{sse} (internal function to compute sum
-squared error, with error given by \code{y - y_hat}).}
+(the ANN output). If this function has additional parameters which require
+optimizing, these must be defined in argument \code{par_of}
+(see AR(1) case in `Examples'). Default is \code{sse} (internal
+function to compute sum squared error, with error given by
+\code{y - y_hat}) when \code{objfn = NULL}.}
 
-\item{method}{the method to be used by \code{\link[stats]{optim}} for
-minimising the objective function. May be ``Nelder-Mead'', ``BFGS'',
+\item{method}{the method to be used by \code{\link[stats]{optim}}
+for minimising the objective function. May be ``Nelder-Mead'', ``BFGS'',
 ``CG'', ``L-BFGS-B'', ``SANN'' or ``Brent''. Can be abbreviated.
 Default is ``BFGS''.}
 
-\item{trace}{logical. Should optimization be traced? Default = TRUE.}
+\item{maxit}{maximum number of iterations used by \code{\link[stats]{optim}}.
+Default value is 1000.}
 
-\item{\dots}{arguments to be passed to user-defined \code{objfn}.}
+\item{abstol}{absolute convergence tolerance (stopping criterion)
+used by \code{\link[stats]{optim}}. Default is \code{1e-4}.}
+
+\item{reltol}{relative convergence tolerance (stopping criterion)
+used by \code{\link[stats]{optim}}. Optimization stops if the value
+returned by \code{objfn} cannot be reduced by a factor of
+\code{reltol * (abs(val) + reltol)} at a step. Default is \code{1e-8}.}
+
+\item{trace}{logical. Should optimization be traced?
+Default = TRUE.}
+
+\item{\dots}{arguments to be passed to user-defined \code{objfn}. Initial
+values of any parameters (in addition to the ANN weights) requiring
+optimization must be supplied in argument \code{par_of} (see AR(1) case
+in `Examples').}
 }
 \value{
-object of class `ann' with components:
+object of class `ann' with components describing the ANN structure
+   and the following output components:
 \item{wts}{best set of weights found.}
-\item{value}{value of fitting criterion.}
+\item{par_of}{best values of additional \code{objfn} parameters. This
+   component will only be returned if a user-defined \code{objfn} is supplied
+   and argument \code{par_of} is included in the function call (see AR(1)
+   case in `Examples').}
+\item{value}{value of objective function.}
 \item{fitted.values}{fitted values for the training data.}
 \item{residuals}{residuals for the training data.}
 \item{convergence}{integer code returned by \code{\link[stats]{optim}}.
@@ -71,6 +96,9 @@ The ``linear'' activation, or transfer, function is the
    \eqn{f(x) = \frac{e^{x}-e^{-x}}{e^{x}+e^{-x}}}{
       f(x) = (exp(x) - exp(-x)) / (exp(x) + exp(-x))}
 
+   The ``exp'' function is the exponential function given by
+   \eqn{f(x) = e^{x}}{f(x) = exp(x)}
+
    The default configuration of activation functions is
    \code{act_hid = "sigmoid"} and \code{act_out = "linear"}.
 
@@ -93,16 +121,16 @@ x <- ar9[samp, -ncol(ar9)]
 x <- x[, c(1,4,9)]
 fit <- ann(x, y, size = 1, act_hid = "tanh", act_out = "linear", rang = 0.1)
 
-## fit 3-hidden node ann model to ar9 data with user-defined objective
+## fit 3-hidden node ann model to ar9 data with user-defined AR(1) objective
 ## function
 ## ---
-autocorr_sse <- function(y, y_hat, phi, sigma) {
+ar1_sse <- function(y, y_hat, par_of) {
   err <- y - y_hat
-  err[-1] <- phi * err[-length(y)] + rnorm(length(y) - 1, sd = sigma)
+  err[-1] <- err[-1] - par_of * err[-length(y)]
   sum(err ^ 2)
 }
 fit <- ann(x, y, size = 3, act_hid = "tanh", act_out = "linear", rang = 0.1,
-           objfn = autocorr_sse, phi = 0.5, sigma = 0.2)
+           objfn = ar1_sse, par_of = 0.7)
 }
 \seealso{
 \code{\link{predict.ann}}, \code{\link{validann}}

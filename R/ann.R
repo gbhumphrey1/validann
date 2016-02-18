@@ -11,26 +11,47 @@
 #'    of a single input or predictor variable.
 #' @param y  matrix, data frame or vector of target values for examples.
 #' @param size number of hidden layer nodes. Can be zero.
-#' @param act_hid activation function to be used at the hidden layer.
+#' @param act_hid   activation function to be used at the hidden layer.
 #'    See `Details'.
-#' @param act_out activation function to be used at the output layer.
+#' @param act_out   activation function to be used at the output layer.
 #'    See `Details'.
-#' @param Wts initial weight vector. If missing chosen at random.
-#' @param rang initial random weights on [-rang,rang]. Default value is 0.5.
-#' @param objfn objective function to be minimised when fitting weights.
-#'    This function may be user-defined with the first two arguments
+#' @param Wts   initial weight vector. If \code{NULL} chosen at random.
+#' @param rang   initial random weights on [-rang,rang].
+#'    Default value is 0.5.
+#' @param objfn   objective function to be minimised when fitting
+#'    weights. This function may be user-defined with the first two arguments
 #'    corresponding to \code{y} (the observed target data) and \code{y_hat}
-#'    (the ANN output). Default is \code{sse} (internal function to compute sum
-#'    squared error, with error given by \code{y - y_hat}).
-#' @param method the method to be used by \code{\link[stats]{optim}} for
-#'    minimising the objective function. May be ``Nelder-Mead'', ``BFGS'',
+#'    (the ANN output). If this function has additional parameters which require
+#'    optimizing, these must be defined in argument \code{par_of}
+#'    (see AR(1) case in `Examples'). Default is \code{sse} (internal
+#'    function to compute sum squared error, with error given by
+#'    \code{y - y_hat}) when \code{objfn = NULL}.
+#' @param method   the method to be used by \code{\link[stats]{optim}}
+#'    for minimising the objective function. May be ``Nelder-Mead'', ``BFGS'',
 #'    ``CG'', ``L-BFGS-B'', ``SANN'' or ``Brent''. Can be abbreviated.
 #'    Default is ``BFGS''.
-#' @param trace logical. Should optimization be traced? Default = TRUE.
-#' @param \dots  arguments to be passed to user-defined \code{objfn}.
-#' @return object of class `ann' with components:
+#' @param maxit maximum number of iterations used by \code{\link[stats]{optim}}.
+#'    Default value is 1000.
+#' @param abstol   absolute convergence tolerance (stopping criterion)
+#'    used by \code{\link[stats]{optim}}. Default is \code{1e-4}.
+#' @param reltol   relative convergence tolerance (stopping criterion)
+#'    used by \code{\link[stats]{optim}}. Optimization stops if the value
+#'    returned by \code{objfn} cannot be reduced by a factor of
+#'    \code{reltol * (abs(val) + reltol)} at a step. Default is \code{1e-8}.
+#' @param trace   logical. Should optimization be traced?
+#'    Default = TRUE.
+#' @param \dots  arguments to be passed to user-defined \code{objfn}. Initial
+#'    values of any parameters (in addition to the ANN weights) requiring
+#'    optimization must be supplied in argument \code{par_of} (see AR(1) case
+#'    in `Examples').
+#' @return object of class `ann' with components describing the ANN structure
+#'    and the following output components:
 #' \item{wts}{best set of weights found.}
-#' \item{value}{value of fitting criterion.}
+#' \item{par_of}{best values of additional \code{objfn} parameters. This
+#'    component will only be returned if a user-defined \code{objfn} is supplied
+#'    and argument \code{par_of} is included in the function call (see AR(1)
+#'    case in `Examples').}
+#' \item{value}{value of objective function.}
 #' \item{fitted.values}{fitted values for the training data.}
 #' \item{residuals}{residuals for the training data.}
 #' \item{convergence}{integer code returned by \code{\link[stats]{optim}}.
@@ -49,6 +70,9 @@
 #'    The ``tanh'' function is the hyperbolic tangent function given by
 #'    \eqn{f(x) = \frac{e^{x}-e^{-x}}{e^{x}+e^{-x}}}{
 #'       f(x) = (exp(x) - exp(-x)) / (exp(x) + exp(-x))}
+#'
+#'    The ``exp'' function is the exponential function given by
+#'    \eqn{f(x) = e^{x}}{f(x) = exp(x)}
 #'
 #'    The default configuration of activation functions is
 #'    \code{act_hid = "sigmoid"} and \code{act_out = "linear"}.
@@ -74,26 +98,40 @@
 #' x <- x[, c(1,4,9)]
 #' fit <- ann(x, y, size = 1, act_hid = "tanh", act_out = "linear", rang = 0.1)
 #'
-#' ## fit 3-hidden node ann model to ar9 data with user-defined objective
+#' ## fit 3-hidden node ann model to ar9 data with user-defined AR(1) objective
 #' ## function
 #' ## ---
-#' autocorr_sse <- function(y, y_hat, phi, sigma) {
+#' ar1_sse <- function(y, y_hat, par_of) {
 #'   err <- y - y_hat
-#'   err[-1] <- phi * err[-length(y)] + rnorm(length(y) - 1, sd = sigma)
+#'   err[-1] <- err[-1] - par_of * err[-length(y)]
 #'   sum(err ^ 2)
 #' }
 #' fit <- ann(x, y, size = 3, act_hid = "tanh", act_out = "linear", rang = 0.1,
-#'            objfn = autocorr_sse, phi = 0.5, sigma = 0.2)
+#'            objfn = ar1_sse, par_of = 0.7)
 #'
 #' @export
 
 #--------------------------------------------------
-ann <- function(x, y, size, act_hid = c("sigmoid", "tanh", "linear"),
-                act_out = c("linear", "sigmoid", "tanh"), Wts, rang = 0.5,
-                objfn = sse, method = "BFGS",
-                trace = TRUE, ...) {
+ann <- function(x, y, size, act_hid = c("sigmoid", "tanh", "linear", "exp"),
+                act_out = c("linear", "sigmoid", "tanh", "exp"), Wts = NULL,
+                rang = 0.5, objfn = NULL, method = "BFGS", maxit = 1000,
+                abstol = 1.0e-4, reltol = 1.0e-8, trace = TRUE, ...) {
 
-    obj_fn <- function(y, y_hat) {
+  # --------
+  sse <- function(y, y_hat) {
+    err <- y - y_hat
+    sum(err ^ 2)
+  }
+  if(is.null(objfn)) objfn <- sse
+  # --------
+  m <- match.call(expand.dots = TRUE)
+  parof_present <- FALSE
+  if("par_of" %in% names(m)) {
+    parof_present <- TRUE
+    par_of <- eval(m$par_of)
+  }
+
+  obj_fn <- function(y, y_hat) {
     objfn(y, y_hat, ...)
   }
 
@@ -130,7 +168,7 @@ ann <- function(x, y, size, act_hid = c("sigmoid", "tanh", "linear"),
                               (net$nodes[2] + 1) * net$nodes[3])
   }
   net$bias <- rep(1, net$layers)
-  if (missing(Wts)) {
+  if (is.null(Wts)) {
     if (rang > 0) {
       wts <- runif(net$nwts, -rang, rang)
     } else {
@@ -142,7 +180,7 @@ ann <- function(x, y, size, act_hid = c("sigmoid", "tanh", "linear"),
   if (length(wts) != net$nwts) stop("weights vector of incorrect length")
 
   # ----------
-  objfn_1 <- function(par, y, objfn, ...) {
+  objfn_1 <- function(par, y, obj_fn, ...) {
 
     y_hat <- array(0, dim = c(n_patterns, n_outputs))
     Zin <- Z <- list(net$layers)
@@ -170,16 +208,25 @@ ann <- function(x, y, size, act_hid = c("sigmoid", "tanh", "linear"),
     # Calculate model output
     y_hat <- Z[[net$layers]]
 
-
     # Evaluation of objective function
+    if(parof_present) {
+      par_of <- par[(net$nwts + 1):length(par)]
+    }
     obj_fn(y, y_hat)
   }
   # ----------
-
-  tmp <- optim(par = wts, fn = objfn_1, y = y, method = method,
-               control = list(maxit = 5000, trace = trace, REPORT = 20))
+  if(parof_present) {
+    par <- c(wts, par_of)
+  } else {
+    par <- wts
+  }
+  tmp <- optim(par = par, fn = objfn_1, y = y, obj_fn = obj_fn,
+               method = method,
+               control = list(maxit = maxit, abstol = abstol, reltol = reltol,
+                              trace = trace, REPORT = 20))
   net$value <- tmp$value
-  net$wts <- tmp$par
+  net$wts <- tmp$par[1:(net$nwts)]
+  if(parof_present) net$par_of <- tmp$par[(net$nwts + 1):length(tmp$par)]
   net$convergence <- tmp$convergence
   tmp <- predict(net, x, derivs = TRUE)
   net$fitted.values <- tmp$values
@@ -191,20 +238,17 @@ ann <- function(x, y, size, act_hid = c("sigmoid", "tanh", "linear"),
   net
 }
 #-------------------------------------------------------------------------------
-sse <- function(y, y_hat) {
-  err <- y - y_hat
-  sum(err ^ 2)
-}
-#-------------------------------------------------------------------------------
 #' @title Predict new examples using a trained neural network.
 #'
 #' @description Predict new examples using a trained neural network.
 
 #' @param object  an object of class `ann' as returned by function \code{ann}.
-#' @param newdata  matrix, data frame or vector of input data. A vector is
-#'    considered to comprise examples of a single input or predictor variable.
-#' @param derivs  (optional) logical; should derivatives of hidden and output nodes be
-#'    returned. Default is \code{FALSE}.
+#' @param newdata    matrix, data frame or vector of input data.
+#'    A vector is considered to comprise examples of a single input or
+#'    predictor variable. If \code{x} is \code{NULL}, fitted outputs derived
+#'    from \code{object} will be returned.
+#' @param derivs   logical; should derivatives of hidden and output nodes be
+#'    returned? Default is \code{FALSE}.
 #' @param \dots  additional arguments affecting the predictions produced (not
 #'    currently used).
 #' @return if \code{derivs = FALSE}, a vector of predictions is returned.
@@ -250,7 +294,7 @@ sse <- function(y, y_hat) {
 #' derivs <- tmp$derivs
 #' @export
 # ----
-predict.ann <- function(object, newdata, derivs = FALSE, ...) {
+predict.ann <- function(object, newdata = NULL, derivs = FALSE, ...) {
 
 # Description: This function runs the model and calculates the
 # objective function value for a particular set
@@ -258,7 +302,7 @@ predict.ann <- function(object, newdata, derivs = FALSE, ...) {
 #-----
   if (!inherits(object, "ann"))
     stop("object not of class \"ann\"")
-  if (missing(newdata)) {
+  if (is.null(newdata)) {
     y_hat <- fitted(object)
     return(y_hat)
   } else {
@@ -369,28 +413,32 @@ print.ann <- function(x, ...) {
   invisible(x)
 }
 #-------------------------------------------------------------------------------
-actfn <- function(x, method = c("tanh", "sigmoid", "linear")) {
+actfn <- function(x, method = c("tanh", "sigmoid", "linear", "exp")) {
   if (method == "tanh") {
     val <- tanh(x)
   } else if (method == "sigmoid") {
-    val <- val <- 1 / (1 + exp(-x))
+    val <- 1 / (1 + exp(-x))
   } else if (method == "linear") {
-    val <- val <- x
+    val <- x
+  } else if (method == "exp") {
+    val <- exp(x)
   } else {
-    stop("Invalid activation fn : Must be \"tanh\", \"sigmoid\" or \"linear\".")
+    stop("Invalid activation fn : Must be \"tanh\", \"sigmoid\", \"linear\" or \"exp\".")
   }
   return(val)
 }
 #-------------------------------------------------------------------------------
-der_actfn <- function(x, method = c("tanh", "sigmoid", "linear")) {
+der_actfn <- function(x, method = c("tanh", "sigmoid", "linear", "exp")) {
   if (method == "tanh") {
     val <- (1 / cosh(x)) ^ 2
   } else if (method == "sigmoid") {
     val <- actfn(x, "sigmoid") * (1 - actfn(x, "sigmoid"))
   } else if (method == "linear") {
     val <- matrix(rep(1, dim(x)[1] * dim(x)[2]), ncol = ncol(x))
+  } else if (method == "exp") {
+    val <- exp(x)
   } else {
-    stop("Invalid activation fn : Must be \"tanh\", \"sigmoid\" or \"linear\".")
+    stop("Invalid activation fn : Must be \"tanh\", \"sigmoid\", \"linear\" or \"exp\".")
   }
   return(val)
 }

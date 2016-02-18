@@ -9,11 +9,14 @@
 \usage{
 validann(...)
 
-\method{validann}{ann}(net, obs, sim, x, na.rm = TRUE, ...)
+\method{validann}{ann}(net, obs = NULL, sim = NULL, x = NULL,
+  na.rm = TRUE, ...)
 
-\method{validann}{nnet}(net, obs, sim, x, na.rm = TRUE, ...)
+\method{validann}{nnet}(net, obs = NULL, sim = NULL, x = NULL,
+  na.rm = TRUE, ...)
 
-\method{validann}{default}(obs, sim, npar, na.rm = TRUE, ...)
+\method{validann}{default}(obs, sim, wts = NULL, nodes = NULL,
+  na.rm = TRUE, ...)
 }
 \arguments{
 \item{net}{an object of class `ann' (as returned by function
@@ -27,17 +30,25 @@ numbers of nodes in each layer, for example.}
 used to compute model fit statistics. Optional if \code{net} is supplied
 (see `Details').}
 
-\item{x}{(optional) matrix, data frame or vector of input data used for
+\item{x}{matrix, data frame or vector of input data used for
 fitting \code{net} object. A vector is considered to comprise examples of
 a single input or predictor variable. While \code{x} is optional,
 sensitivity analyses useful for structural validation cannot be performed
-if it is missing.}
+if it is not supplied.}
 
-\item{na.rm}{(optional) logical; should missing values (including NaN)
-be removed from calculations?}
+\item{na.rm}{logical; should missing values (including NaN)
+be removed from calculations? Default = TRUE.}
 
-\item{npar}{(optional) integer; number of model parameters (ANN weights).
-If not supplied, validation metrics AIC and BIC will not be
+\item{wts}{vector of ANN weights used to compute input
+`relative importance' measures if \code{net} object is not supplied. Must
+be supplied together with \code{nodes} in order to compute such metrics.
+See `Details' for ordering of \code{wts} vector.}
+
+\item{nodes}{vector indicating the number of nodes in each layer
+of the ANN model. This vector should have 3 elements: nodes in input
+layer, nodes in hidden layer (can be 0), and nodes in output layer.
+If \code{net} object is not supplied, \code{nodes} must be supplied
+together with \code{wts} if any structural validation metrics are to be
 computed.}
 
 \item{\dots}{arguments to be passed to different validann methods,
@@ -47,12 +58,6 @@ see specific formulations for details.}
 list object of class `validann' with components dependent on
    arguments passed to \code{validann} function:
 
-\item{predictive}{logical; if \code{TRUE}, metrics and statistics used
-   for predictive validation have been computed.}
-\item{replicative}{logical; if \code{TRUE}, metrics and statistics used
-   for replicative validation have been computed.}
-\item{structural}{logical; if \code{TRUE}, metrics and statistics used
-   for structural validation have been computed.}
 \item{metrics}{a data frame consisting of metrics:
 
    AME, PDIFF, MAE, ME, RMSE, R4MS4E, AIC, BIC, NSC, RAE, PEP, MARE,
@@ -70,34 +75,59 @@ list object of class `validann' with components dependent on
 \item{resid_stats}{a data frame consisting of summary statistics about the
    model \code{residuals} including mean, minimum, maximum, variance,
    standard deviation, skewness and kurtosis.}
-\item{ri}{a data frame consisting `relative importance' values for each input
-   computed using the overall connection weight (ocw), modified ocw (ocw.mod)
-   and Garson's (gars) methods. Only returned if \code{net} is supplied.
-   See ***refs}
-\item{y_hat}{a matrix of dimension \code{c(101, ncol(x))} of model response
-   values indicating the local sensitivity of the model to each input in
-   \code{x}. Only returned if \code{net} and \code{x} are supplied.
+\item{ri}{a data frame consisting of `relative importance' values for each
+   input. Only returned if \code{net} or \code{wts} and \code{nodes} are
+   supplied.
 
-   The response values returned in \code{y_hat} are calculated by carrying
-   out a local sensitivity analysis, whereby the sensitivity of the model
-   with respect to each input in \code{x} is considered successively.
-   For each input of interest \code{x[,i]}, synthetic data are generated
-   such that inputs \code{x[,-i]} are fixed to their mean values
+   If \code{net} is supplied, relative importance values computed using the
+   following 5 methods are returned:
+   Garson's (Garson), connection weight (CW),
+   modified CW (MCW), Profile sensitivity analysis (Profile) and partial
+   derivative sensitivity analysis (PaD).
+
+   If \code{wts} and \code{nodes} are supplied, only relative importance
+   values computed using the Garson and CW methods are returned.
+
+   See Gevrey et al. (2003), Olden et al. (2004) and Kingston et al. (2006)
+   for details of the relative importance methods.}
+\item{y_hat}{a matrix of dimension \code{c(101, ncol(x) * 6)} of model
+   response values indicating the local sensitivity of the model to each
+   input in \code{x}. Only returned if \code{net} and \code{x} are supplied.
+
+   The response values returned in \code{y_hat} are calculated using the
+   `Profile' sensitivity analysis method described in Gevrey et al. (2003).
+   Using this method, the local sensitivity of each input in \code{x} is
+   considered successively. For each input \code{x[,i]}, 5 synthetic data
+   sets are generated where inputs \code{x[,-i]} are successively fixed at
+   their minimum, 1st quartile, median, 3rd quartile and maximum values
    (as calculated from \code{x}), while input \code{x[,i]} is varied between
    its minimum and maximum value, increasing in increments of 1\% (giving
-   101 synthetic values of \code{x[,i]}). These data are input into
-   \code{net} and the corresponding model response values are computed and
-   returned in \code{y_hat[,i]}. This process is repeated for each input
-   variable in \code{x}. See Shahin et al. (2005) for further details.}
+   101 synthetic values of \code{x[,i]} for each of the 5 sets of fixed
+   \code{x[,-i]}). These data are input into \code{net} and model response
+   values corresponding to the 5 summary statistics are computed.
+   These 5 sets of response values, together with a set of computed median
+   responses, are returned as y_hat[,(i - 1) * 6 + 1:6]. This process is
+   repeated for each input variable in \code{x}. See Gevrey et al. (2003)
+   for further details.}
+\item{as}{a matrix of dimension \code{dim(x)} of `absolute sensitivity'
+   values for each input in \code{x} given the model output values
+   (i.e. \code{sim}). Only returned if \code{net} and \code{x} are
+   supplied and \code{net} is of class `ann'.
+
+   The values in \code{as} are calculated according to the partial
+   derivative (PaD) sensitivity analysis method described in Gevrey et al.
+   (2003), which involves computing the first-order partial derivatives of
+   the ANN output with respect to each input. \code{net} must be of class
+   `ann' in order to access partial derivatives of the hidden layer nodes as
+   returned by \code{\link{ann}}.}
 \item{rs}{a matrix of dimension \code{dim(x)} of `relative sensitivity'
    values for each input in \code{x} given the model output values
    (i.e. \code{sim}). Only returned if \code{net} and \code{x} are
    supplied and \code{net} is of class `ann'.
 
-   The values in \code{rs} are calculated according to the partial
-   derivative (P.D.) sensitivity analysis method described in Mount et al.
-   (2013), which involves computing the first-order partial derivatives of
-   the ANN output with respect to each input. \code{net} must be of class
+   To compute the values in \code{rs}, the \code{as} values are normalised
+   by multiplying by \code{x[,i]}/\code{sim} as described in Mount et al.
+   (2013). As for \code{as}, \code{net} must be of class
    `ann' in order to access partial derivatives of the hidden layer nodes as
    returned by \code{\link{ann}}.}
 }
@@ -106,31 +136,44 @@ Compute metrics and statistics for predictive, replicative
    and/or structural validation of artificial neural networks (ANNs).
 }
 \details{
-To compute all (predictive, replicative and structural) types of
-validation metrics and statistics, \code{net} must be supplied and must be
-of class `ann' (as returned by \code{\link{ann}}) or `nnet' (as returned by
-\code{\link[nnet]{nnet}}). However, a partial derivative (P.D.)
-sensitivity analysis (useful for structural validation) will only be carried
-out if \code{net} is of class `ann'.
+To compute all possible validation metrics and statistics,
+   \code{net} must be supplied and must be of class `ann' (as returned by
+   \code{\link{ann}}) or `nnet' (as returned by \code{\link[nnet]{nnet}}).
+   However, a partial derivative (PaD) sensitivity analysis (useful for
+   structural validation) will only be carried out if \code{net} is of class
+   `ann'.
 
-If \code{obs} and \code{sim} data are supplied, validation metrics are
-computed based on these. Otherwise, metrics and statistics are computed
-based on \code{obs} and \code{sim} datasets derived from the
-\code{net} object (i.e. the data used to fit \code{net} and the fitted
-values). As such, both \code{obs} and \code{sim} must be
-supplied if validation is to be based either on data not used for training or
-on unprocessed training data (if training data were preprocessed). If either
-\code{obs} or \code{sim} is specified but the other isn't, both \code{obs}
-and \code{sim} will be derived from \code{net} if supplied (and a warning
-will be given). Similarly, this will occur if \code{obs} and \code{sim} are
-of different lengths.
+   If \code{obs} and \code{sim} data are supplied in addition to \code{net},
+   validation metrics are computed based on these. Otherwise, metrics and
+   statistics are computed based on \code{obs} and \code{sim} datasets
+   derived from the \code{net} object (i.e. the data used to fit \code{net}
+   and the fitted values). As such, both \code{obs} and \code{sim} must be
+   supplied if validation is to be based either on data not used for
+   training or on unprocessed training data (if training data were
+   preprocessed). If either \code{obs} or \code{sim} is specified but the
+   other isn't, both \code{obs} and \code{sim} will be derived from
+   \code{net} if supplied (and a warning will be given). Similarly, this
+   will occur if \code{obs} and \code{sim} are of different lengths.
 
-If \code{net} is not supplied, both \code{obs} and
-\code{sim} are required and structural validation metrics will not be
-computed. This may be necessary if validating an ANN model not built using
-either the \code{\link[nnet]{nnet}} or \code{\link{ann}} functions. In this case,
-it is necessary to also supply \code{npar} for AIC and BIC metrics to be
-returned.
+   If \code{net} is not supplied, both \code{obs} and \code{sim} are
+   required. This may be necessary if validating an ANN model not built
+   using either the \code{\link[nnet]{nnet}} or \code{\link{ann}} functions.
+   In this case, both \code{wts} and \code{nodes} are also required if any
+   structural validation metrics are to be returned. If an ANN model has
+   \emph{K} input nodes, \emph{J} hidden nodes and a single output \emph{O},
+   with a bias node for both the hidden and output layers, the \code{wts} vector must be ordered
+   as follows:
+
+   \code{c(Wi1h1,Wi1h2,...Wi1hJ,Wi2h1,...Wi2hJ,...,WiKh1,...,WiKhJ,Wi0h1,...,Wi0hJ,}\cr
+   \code{  Wh1O,...,WhJO,Wh0O)}
+
+   where \code{Wikhj} is the weight between the \emph{k}th input and the
+   \emph{j}th hidden node and \code{WhjO} is the weight between the
+   \emph{j}th hidden node and the output. The bias weight on the \emph{j}th
+   hidden layer node is labelled \code{Wi0hj} while the bias weight on the
+   output is labelled \code{Wh0O}. The \code{wts} vector assumes the network
+   is fully connected; however, missing connections may be substituted by
+   zero weights. Skip-layer connections are not allowed.
 }
 \section{Methods (by class)}{
 \itemize{
@@ -140,9 +183,10 @@ is of class `ann'.
 \item \code{nnet}: Compute validation metrics when \code{net}
 is of class `nnet'.
 
-\item \code{default}: Useful when ANN model has not been developed using
-either \code{\link{ann}} or \code{\link[nnet]{nnet}}. Only metrics and
-statistics for predictive and replicative validation are computed.
+\item \code{default}: Useful for predictive validation only or when ANN model
+has not been developed using either \code{\link{ann}} or
+\code{\link[nnet]{nnet}}. Limited structural validation metrics may be
+computed and only if \code{wts} and \code{nodes} are supplied.
 }}
 \examples{
 # get validation results for 1-hidden node `ann' model fitted to ar9 data
@@ -169,9 +213,10 @@ sim <- predict(fit, newdata = x)
 results <- validann(fit, obs = obs, sim = sim, x = x)
 
 # get validation results for `obs' and `sim' data without ANN model.
-# In this example `sim' is generated using a linear model.
-# validann would be called in the same way if the ANN model used to generate
-# `sim' was not available or was not of class `ann' or `nnet'.
+# In this example `sim' is generated using a linear model. No structural
+# validation of the model is possible, but `wts' are provided to compute the
+# number of model parameters needed for the calculation of certain
+# goodness-of-fit metrics.
 # ---
 samp <- sample(1:1000, 200)
 y <- ar9[samp, ncol(ar9)]
@@ -180,8 +225,20 @@ x <- as.matrix(x[, c(1,4,9)])
 lmfit <- lm.fit(x, y)
 sim <- lmfit$fitted.values
 obs <- y
-npar <- length(lmfit$coefficients)
-results <- validann(obs = obs, sim = sim, npar = npar)
+results <- validann(obs = obs, sim = sim, wts = lmfit$coefficients)
+
+# validann would be called in the same way if the ANN model used to generate
+# `sim' was not available or was not of class `ann' or `nnet'. Ideally in
+# this case, however, both `wts' and `nodes' should be supplied such that
+# some structural validation metrics may be computed.
+# ---
+obs <- c(0.257, -0.891, -1.710, -0.575, -1.668, 0.851, -0.350, -1.313,
+         -2.469, 0.486)
+sim <- c(-1.463, 0.027, -2.053, -1.091, -1.602, 2.018, 0.723, -0.776,
+         -2.351, 1.054)
+wts <- c(-0.05217, 0.08363, 0.07840, -0.00753, -7.35675, -0.00066)
+nodes <- c(3, 1, 1)
+results <- validann(obs = obs, sim = sim, wts = wts, nodes = nodes)
 }
 \references{
 Dawson, C.W., Abrahart, R.J., See, L.M., 2007. HydroTest: A web-based
@@ -190,16 +247,25 @@ Dawson, C.W., Abrahart, R.J., See, L.M., 2007. HydroTest: A web-based
    1034-1052. \url{http://dx.doi.org/10.1016/j.envsoft.2006.06.008}.
    \url{http://co-public.lboro.ac.uk/cocwd/HydroTest/Details.html}
 
-Shahin, M.A., Maier, H.R., Jaksa, M.B., 2005. Investigation
-   into the robustness of artificial neural networks for a case study in
-   civil engineering. MODSIM 2005 International Congress on Modelling and
-   Simulation, December 2005,
-   \url{http://www.mssanz.org.au/modsim05/papers/shahin_3.pdf}, 79-83.
+Olden, J.D., Joy, M.K., Death, R.G., 2004. An accurate comparison of
+   methods for quantifying variable importance in artificial neural networks
+   using simulated data. Ecological Modelling 178, 389-397.
+   \url{http://dx.doi.org/10.1016/j.ecolmodel.2004.03.013}.
+
+Gevrey, M., Dimopoulos, I., Lek, S., 2003. Review and comparison of methods
+   to study the contribution of variables in artificial neural network
+   models. Ecological Modelling 160, 249-264.
+   \url{http://dx.doi.org/10.1016/S0304-3800(02)00257-0}.
+
+Kingston, G.B., Maier, H.R., Lambert, M.F., 2006. Forecasting cyanobacteria
+   with Bayesian and deterministic artificial neural networks, in: IJCNN '06.
+   International Joint Conference on Neural Networks, 2006., IEEE.
+   pp. 4870-4877. \url{http://dx.doi.org/10.1109/ijcnn.2006.247166}.
 
 Mount, N.J., Dawson, C.W., Abrahart, R.J., 2013. Legitimising
-data-driven models: exemplification of a new data-driven mechanistic
-modelling framework. Hydrology and Earth System Sciences 17, 2827-2843.
-\url{http://dx.doi.org/10.5194/hess-17-2827-2013}.
+   data-driven models: exemplification of a new data-driven mechanistic
+   modelling framework. Hydrology and Earth System Sciences 17, 2827-2843.
+   \url{http://dx.doi.org/10.5194/hess-17-2827-2013}.
 }
 \seealso{
 \code{\link{ann}}, \code{\link{plot.validann}},

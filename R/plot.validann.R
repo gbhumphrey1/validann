@@ -11,42 +11,53 @@
 #' @param obs,sim   vectors comprising observed (\code{obs}) and simulated
 #'    (\code{sim}) examples of a single response variable used for computing
 #'    \code{x} object.
-#' @param type  character string defining how plots should be displayed.
-#'    The default is ``multi'' where multiple plots are displayed together
-#'    according to whether they are used for predictive, replicative or
-#'    structural validation. For ``single'', each plot is displayed on its own.
-#'    If the session is interactive, the user will be asked to confirm a new
-#'    page whether \code{type} is ``single'' or ``multi''
+#' @param gof   logical; should goodness-of-fit plots be produced?
+#'    Default = TRUE.
+#' @param resid  logical; should residual analysis plots be produced?
+#'    Default = TRUE.
+#' @param sa   logical; should input sensitivity analysis plots be
+#'    produced? Default = TRUE.
+#' @param display   character string defining how plots should be
+#'    displayed. The default is ``multi'' where multiple plots are displayed
+#'    together according to whether they are goodness-of-fit, residual analysis
+#'    or sensitivity analysis plots. For ``single'', each plot is displayed on
+#'    its own. If the session is interactive, the user will be asked to confirm
+#'    a new page whether \code{display} is ``single'' or ``multi''.
+#' @param profile   character string defining which structural
+#'    validity Profile method outputs should be plotted. The default is ``all''
+#'    where outputs corresponding to 5 summary statistics are plotted together
+#'    with the median predicted response for each input value.
+#'    For ``median'', only the median response is plotted.
 #' @param \dots Arguments to be passed to plot (not currently used).
 #' @details   This function can be invoked by calling
 #'    \code{plot(x, obs, sim)} for an object \code{x} of class
 #'    `validann'.
 #'
-#'    To produce plots for all (predictive, replicative and structural)
-#'    types of validation metrics and statistics, \code{x$predictive},
-#'    \code{x$replicative} and \code{x$structural} must be
-#'    \code{TRUE} and, for replicative and structural validation, corresponding
-#'    results must have been successfully computed by \code{\link{validann}}
-#'    and returned in object \code{x}.
+#'    To produce plots for all types of validation metrics and statistics,
+#'    \code{gof}, \code{resid} and \code{sa} must be
+#'    \code{TRUE} and corresponding results must have been successfully
+#'    computed by \code{\link{validann}} and returned in object \code{x}.
 #'
-#'    If \code{x$predictive} is \code{TRUE}, a scatter plot, Q-Q plot and
+#'    If \code{gof} is \code{TRUE}, a scatter plot, Q-Q plot and
 #'    time/sample plot of observed (\code{obs}) versus predicted (\code{sim})
 #'    data are produced.
 #'
-#'    If \code{x$replicative} is \code{TRUE} and \code{x$residuals}
+#'    If \code{resid} is \code{TRUE} and \code{x$residuals}
 #'    is not \code{NULL}, plots of the model residuals are produced including
 #'    histogram, Q-Q plot (standardized residuals compared to standard normal),
 #'    autocorrelation (acf), partial autocorrelation (pacf), standardized
 #'    residual versus predicted output (i.e. \code{sim}) and standardized
 #'    residual versus time/order of the data.
 #'
-#'    If \code{x$structural} is \code{TRUE} and \code{x$y_hat} is not
-#'    \code{NULL}, plots of the model response values versus percentiles of each
-#'    input are produced. If \code{x$rs} is not \code{NULL}
+#'    If \code{sa} is \code{TRUE} and \code{x$y_hat} is not
+#'    \code{NULL}, model response values resulting from the Profile
+#'    sensitivity analysis are plotted against percentiles of each
+#'    input. If \code{x$rs} is not \code{NULL}, the relative sensitivities of
+#'    each input, as computed by the partial derivative (PaD) sensitivity
+#'    analysis, are plotted against predicted output.
 #'
-#'    Setting \code{x$predictive}, \code{x$replicative} and/or
-#'    \code{x$structural} to \code{FALSE} prior to calling
-#'    \code{plot.validann} will turn off the respective validation plots.
+#'    Setting \code{gof}, \code{resid} and/or \code{sa} to \code{FALSE}
+#'    will `turn off' the respective validation plots.
 #'
 #' @seealso \code{\link{validann}}
 #' @examples
@@ -66,7 +77,7 @@
 #' plot(results, obs, sim)
 #'
 #' ## Plot results to the current device - a single page for each plot
-#' plot(results, obs, sim, type = "single")
+#' plot(results, obs, sim, display = "single")
 #'
 #' ## Plot replicative and structural validation results to single file
 #' pdf("RepStructValidationPlots.pdf")
@@ -84,35 +95,40 @@
 #' results <- validann(fit, obs = obs, sim = sim, x = x)
 #'
 #' ## Plot predictive results only to file
-#' results$replicative <- results$structural <- FALSE
 #' pdf("PredValidationPlots.pdf")
-#' plot(results, obs, sim)
+#' plot(results, obs, sim, resid = FALSE, sa = FALSE)
 #' dev.off()
 #'
 #' @export
 #--------------------------------------------------
-plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
+plot.validann <- function(x, obs, sim, gof = TRUE, resid = TRUE, sa = TRUE,
+                          display = c("multi", "single"),
+                          profile = c("all", "median"), ...) {
 
-#  if (is.null(net) & is.null(obs) & is.null(sim)) {
+
+#  ask <- devAskNewPage(TRUE)
+#  on.exit(devAskNewPage(ask))
+
   if (is.null(obs) & is.null(sim)) {
     stop("'obs' and 'sim' objects required.")
   }
-  type <- match.arg(NULL, type)
-  if (type == "single" && dev.interactive()) devAskNewPage(ask = TRUE)
+  display <- match.arg(NULL, display)
+  profile <- match.arg(NULL, profile)
+  if (display == "single" && dev.interactive()) devAskNewPage(ask = TRUE)
 
-# Predictive validity plots
+# Goodness-of-fit plots
 # ----
-  if (x$predictive == TRUE) {
+  if (gof == TRUE) {
     if (is.null(obs)) {
       message1 <- "'obs' data missing :"
-      message2 <- "Predictive validity plots will not be produced."
+      message2 <- "Goodness-of-fit plots will not be produced."
       warning(message1, message2, call. = FALSE, immediate. = FALSE)
     } else if (is.null(sim)) {
       message1 <- "'sim' data missing :"
-      message2 <- "Predictive validity plots will not be produced."
+      message2 <- "Goodness-of-fit plots will not be produced."
       warning(message1, message2, call. = FALSE, immediate. = FALSE)
     } else {
-      if (type == "multi") {
+      if (display == "multi") {
         m <- rbind(c(1, 2), c(3, 3))
         layout(m)
       } else {
@@ -133,6 +149,7 @@ plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
 
       # qq plot of obs v sim
       qqplot(obs, sim, pch = 21, col = "black", bg = colors()[240],
+             xlim = c(min_plot, max_plot), ylim = c(min_plot, max_plot),
              xlab = "Observed", ylab = "Predicted",
              main = "Q-Q Plot")
       abline(a = 0, b = 1, col = "red", lty = "dashed")
@@ -151,23 +168,23 @@ plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
              pch = c(23, 23), col = c("black", "black"),
              pt.bg = c("black", colors()[240]), pt.cex = c(1, 0.8),
              horiz = TRUE, bty = "n", inset = c(0, 0), xpd = TRUE)
-      if (type == "multi") {
+      if (display == "multi") {
         if (dev.interactive()) devAskNewPage(ask = TRUE)
-        title(main = "Predictive Validity", outer = TRUE)
+        title(main = "Goodness-of-fit", outer = TRUE)
       }
     }
   }
 
 
-# Replicative validity plots
+# Residual analysis plots
 # ----
-  if(x$replicative == TRUE) {
+  if(resid == TRUE) {
     if (is.null(sim)) {
       message1 <- "'sim' data missing :"
-      message2 <- "Replicative validity plots will not be produced."
+      message2 <- "Residual analysis plots will not be produced."
       warning(message1, message2, call. = FALSE, immediate. = FALSE)
     } else {
-      if(type == "multi") {
+      if(display == "multi") {
         m <- rbind(c(1, 2), c(3, 4), c(5, 6))
         layout(m)
       } else {
@@ -176,7 +193,7 @@ plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
       }
       par(oma = c(0, 0, 1, 0), mar = c(4, 4, 3, 0.3))
 
-      # residuals histogram
+    # residuals histogram
       tmp_hist <- hist(x$residuals, plot = FALSE)
       tmp_norm <- dnorm(x$residuals, mean = 0,
                         sd = x$resid_stats$sd)
@@ -186,7 +203,7 @@ plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
            xlab = "Residual", ylab = "Density", main = "Residuals Histogram")
       lines(x = sort(x$residuals), y = tmp_norm[order(x$residuals)],
             col = "red", lty = "dashed")
-      if (type == "multi") devAskNewPage(ask = FALSE)
+      if (display == "multi") devAskNewPage(ask = FALSE)
 
     # qq plot of residual vs normal distribution
       sd_err <- (x$residuals - x$resid_stats$mean) /
@@ -214,8 +231,6 @@ plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
       abline(h = 0)
       abline(h = c(clim, -clim), col = "blue", lty = 2)
 
-
-
     # Standardised residuals vs simulated
       plot(x = sim, y = sd_err, type = "p", pch = 21, col = "black",
            cex = 0.8, bg = colors()[240], xlab = "Predicted Value",
@@ -224,8 +239,9 @@ plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
       abline(h = 0, lty = "dashed", col = "red")
       abline(h = -1.96, lty = "dashed", col = "blue")
       abline(h = 1.96, lty = "dashed", col = "blue")
+
     # Standardised residuals vs 'time'
-      plot(x = 1:length(x$residuals), y = sd_err, type = "p", pch = 21,
+      plot(x = 1:length(sd_err), y = sd_err, type = "p", pch = 21,
            col = "black", cex = 0.8, bg = colors()[240],
            xlab = "Order", ylab = "Standardized Residual",
            main = "Residuals Vs Order/Time")
@@ -233,28 +249,27 @@ plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
       abline(h = -1.96, lty = "dashed", col = "blue")
       abline(h = 1.96, lty = "dashed", col = "blue")
 
-      if (type == "multi") {
+      if (display == "multi") {
         if (dev.interactive()) devAskNewPage(ask = TRUE)
-        title(main = "Replicative Validity", outer = TRUE)
+        title(main = "Residual analysis", outer = TRUE)
       }
     }
   }
 
 
-
-# Structural validity plots
+# Sensitivity analysis plots
 # ----
-  if(x$structural == TRUE) {
+  if(sa == TRUE) {
     if (is.null(x$y_hat) && is.null(x$rs)) {
       message1 <-
         "Sensitivity analysis results missing : "
-      message2 <- "Structural validity plots will not be produced."
+      message2 <- "Sensitivity analysis plots will not be produced."
       warning(message1, message2, call. = FALSE, immediate. = FALSE)
     } else {
-      ninputs <- ncol(x$y_hat)
+      ninputs <- ncol(x$y_hat) / 6
     }
     if (!is.null(x$y_hat)) {
-      if (type == "multi") {
+      if (display == "multi") {
         rem <- ninputs %% 2
         rep <- ninputs %/% 2
         if (rem > 0) rep <- rep + 1
@@ -264,31 +279,46 @@ plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
       } else {
         m <- c(1, 1)
         layout(m)
+        rep <- 1
       }
-      par(oma = c(0, 0, 1, 0), mar = c(4, 4, 3, 0.3))
-
+      par(oma = c(0, 0, 1, 3), mar = c(4, 4, 3, 0.3))
+      cols <- c("blue", "red", "gold", "magenta", "turquoise", "black")
       for (i in 1:ninputs) {
-        maxy <- max(x$y_hat[, i])
-        miny <- min(x$y_hat[, i])
-        plot(x = seq(0, 100, by = 1), y = x$y_hat[, i], type = "p",
-             pch = 21, col = "black", bg = colors()[240],
+        y_hat <- x$y_hat[, (i - 1) * 6 + 1:6]
+        miny <- min(y_hat)
+        maxy <- max(y_hat) + 0.3 * (max(y_hat) - miny)
+        p_name <- colnames(y_hat)[1]
+        p_name <- substr(p_name, 1, nchar(p_name) - 2)
+        plot(x = seq(0, 100, by = 1), y = y_hat[, 6], type = "l",
+             col = "black",
              ylim = c(miny, maxy), ylab = "Predicted Response",
-             xlab = paste("Percentile of Input:", colnames(x$y_hat)[i]),
-             main = colnames(x$y_hat)[i])
+             xlab = paste("Percentile of Input:", p_name),
+             main = "")
+        title(main = p_name, line = 1)
+        if(profile == "all") {
+          for(j in 1:6) {
+            lines(x = seq(0, 100, by = 1), y = y_hat[, j], col = cols[j])
+          }
+           legend("top",
+                  legend = c("Min.", "25%", "50%",
+                             "75%", "Max.", "Median"),
+                  cex = 0.6 + rep * 0.1, pch = 20, col = cols,
+                  horiz = TRUE, bty = "n", xpd = NA)
+        }
         if (dev.interactive() && (i %% (rep * 2) == 0)) {
           devAskNewPage(ask = TRUE)
         } else if (dev.interactive() && i == ninputs) {
           devAskNewPage(ask = TRUE)
-        } else if (dev.interactive() && type == "single") {
+        } else if (dev.interactive() && display == "single") {
           devAskNewPage(ask = TRUE)
         } else {
           devAskNewPage(ask = FALSE)
         }
-        title(main = "Local Sensitivity Analysis", outer = TRUE)
+        title(main = "Sensitivity analysis - Profile", outer = TRUE)
       }
     }
     if (!is.null(x$rs)) {
-      if (type == "multi") {
+      if (display == "multi") {
         rem <- ninputs %% 2
         rep <- ninputs %/% 2
         if (rem > 0) rep <- rep + 1
@@ -299,8 +329,8 @@ plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
         m <- c(1, 1)
         layout(m)
       }
-      par(oma = c(0, 0, 1, 0), mar = c(4, 4, 3, 0.3))
 
+      par(oma = c(0, 0, 1, 0), mar = c(4, 4, 3, 0.3))
       yrange <- c(min(x$rs), max(x$rs))
       for (i in 1:ninputs) {
         plot(x = obs, y = x$rs[, i], type = "p", ylim = yrange,
@@ -310,12 +340,30 @@ plot.validann <- function(x, obs, sim, type = c("multi", "single"), ...) {
           devAskNewPage(ask = TRUE)
         } else if (dev.interactive() && i == ninputs) {
           devAskNewPage(ask = TRUE)
-        } else if (dev.interactive() && type == "single") {
+        } else if (dev.interactive() && display == "single") {
           devAskNewPage(ask = TRUE)
         } else {
           devAskNewPage(ask = FALSE)
         }
-        title(main = "P.D. Sensitivity Analysis", outer = TRUE)
+        title(main = "Sensitivity analysis - PaD - Relative", outer = TRUE)
+      }
+
+      par(oma = c(0, 0, 1, 0), mar = c(4, 4, 3, 0.3))
+      yrange <- c(min(x$as), max(x$as))
+      for (i in 1:ninputs) {
+        plot(x = obs, y = x$as[, i], type = "p", ylim = yrange,
+             xlab = "Observed Response Value", ylab = "Absolute Sensitivity",
+             main = colnames(x$as)[i])
+        if (dev.interactive() && (i %% (rep * 2) == 0)) {
+          devAskNewPage(ask = TRUE)
+        } else if (dev.interactive() && i == ninputs) {
+          devAskNewPage(ask = TRUE)
+        } else if (dev.interactive() && display == "single") {
+          devAskNewPage(ask = TRUE)
+        } else {
+          devAskNewPage(ask = FALSE)
+        }
+        title(main = "Sensitivity analysis - PaD - Absolute", outer = TRUE)
       }
     }
 

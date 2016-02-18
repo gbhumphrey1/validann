@@ -4,16 +4,18 @@
 \alias{predict.ann}
 \title{Predict new examples using a trained neural network.}
 \usage{
-\method{predict}{ann}(object, newdata, derivs = FALSE, ...)
+\method{predict}{ann}(object, newdata = NULL, derivs = FALSE, ...)
 }
 \arguments{
 \item{object}{an object of class `ann' as returned by function \code{ann}.}
 
-\item{newdata}{matrix, data frame or vector of input data. A vector is
-considered to comprise examples of a single input or predictor variable.}
+\item{newdata}{matrix, data frame or vector of input data.
+A vector is considered to comprise examples of a single input or
+predictor variable. If \code{x} is \code{NULL}, fitted outputs derived
+from \code{object} will be returned.}
 
-\item{derivs}{(optional) logical; should derivatives of hidden and output nodes be
-returned. Default is \code{FALSE}.}
+\item{derivs}{logical; should derivatives of hidden and output nodes be
+returned? Default is \code{FALSE}.}
 
 \item{\dots}{additional arguments affecting the predictions produced (not
 currently used).}

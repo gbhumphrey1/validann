@@ -2,7 +2,7 @@
 #'
 #' @description
 #' Synthetically generated dataset containing values of dependent variable
-#' \code{x_t} given values of
+#' \code{x_t} given values of \cr
 #' \code{x_t-1, x_t-2, ..., x_t-15}.
 #'
 #' @details
@@ -23,5 +23,5 @@
 #' @references Sharma, A. (2000), Seasonal to interannual rainfall
 #' probabilistic forecasts for improved water supply management: Part 1 -
 #' a strategy for system predictor identification, Journal of Hydrology,
-#' 239(1-4), 232-239, doi:10.1016/S0022-1694(00)00346-2.
+#' 239(1-4), 232-239, \url{http://dx.doi.org/10.1016/S0022-1694(00)00346-2}.
 "ar9"
