@@ -41,7 +41,7 @@ This function is similar to the available `nnet` function from package [nnet](ht
 
 Function `validann` computes validation metrics and statistics for a fitted ANN model according to the class of ANN model (if supplied) and the data provided. These include goodness-of-fit metrics; summary statistics of the observed and simulated datasets and the model residuals; input relative importance measures computed using Garson's, the connection weight (CW), modified connection weight (MCW), Profile and PaD methods; and profiles of model output behaviour produced by the Profile and PaD sensitivity analysis methods.
 
-```{r, results = 'hide'}
+```{r, results = 'hide',  message = FALSE, warning = FALSE}
 results <- validann(fit, x = x)
 ```
 
@@ -50,7 +50,9 @@ The `plot.validann` function is a plot method for objects of class `validann' th
 -   Residual analysis plots (replicative validation): histogram and normal probability plot of residuals; residual autocorrelation and partial autocorrelation plots; standardised residuals against predicted data and standardised residuals against against order of the data.
 -   Sensitivity analysis plots (structural validation): Profile sensitivity plots: for each input, plots of predicted response versus percentile of input; PaD sensitivity plots: for each input, plots of relative and absolute sensitivity versus observed response.
 
-```{r, results = 'hide', fig.height = 6, fig.width = 7}
+```{r, results = 'hide', fig.height = 7, fig.width = 6}
+obs <- observed(fit)
+sim <- fitted(fit)
 plot(results, obs, sim)
 ```
 

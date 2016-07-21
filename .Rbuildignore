@@ -4,3 +4,6 @@
 ^aux_files$
 ^vignettes$
 ^\.travis\.yml$
+^cran-comments\.md$
+^README\.Rmd$
+^README-.*\.png$
