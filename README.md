@@ -1,8 +1,6 @@
 validann
 --------
 
-#### *Greer B. Humphrey, <greer.humphrey@adelaide.edu.au>*
-
 The **validann** package provides validation methods for the replicative, predictive and structural validation of artificial neural network (ANN) models. These methods are applicable to single layer MLPs developed both within the R environment (using functions `ann` or `nnet`) or using alternative software.
 
 ### Citation
