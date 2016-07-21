@@ -15,5 +15,6 @@ Suggests: nnet,
     knitr,
     rmarkdown
 License: GPL (>= 2)
-BugReports: https://github.com/gbhumphrey1/validann/issues
+URL: http://github.com/gbhumphrey1/validann
+BugReports: http://github.com/gbhumphrey1/validann/issues
 
