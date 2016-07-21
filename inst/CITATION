@@ -4,7 +4,6 @@ citEntry(entry = "Manual",
   title        = "validann: Validation tools for artificial neural networks",
   author       = personList(as.person("Greer B. Humphrey")),
   year         = "2016",
-  url          = "http://CRAN.R-project.org/package=validann",
 
   textVersion  =
   paste("Greer B. Humphrey (2016).",
