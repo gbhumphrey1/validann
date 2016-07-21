@@ -48,6 +48,7 @@ The `plot.validann` function is a plot method for objects of class \`validann' t
 # get observed and fitted (training) data
 obs <- observed(fit)
 sim <- fitted(fit)
+
 # plot ANN validation results
 plot(results, obs, sim)
 ```
