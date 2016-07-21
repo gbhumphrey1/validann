@@ -245,7 +245,6 @@ Dawson, C.W., Abrahart, R.J., See, L.M., 2007. HydroTest: A web-based
    toolbox of evaluation metrics for the standardised assessment of
    hydrological forecasts. Environmental Modelling & Software, 22(7),
    1034-1052. \url{http://dx.doi.org/10.1016/j.envsoft.2006.06.008}.
-   \url{http://co-public.lboro.ac.uk/cocwd/HydroTest/Details.html}
 
 Olden, J.D., Joy, M.K., Death, R.G., 2004. An accurate comparison of
    methods for quantifying variable importance in artificial neural networks
