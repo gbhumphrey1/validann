@@ -228,6 +228,13 @@
 #' results <- validann(obs = obs, sim = sim, wts = wts, nodes = nodes)
 #'
 #' @export
+#' @importFrom stats cor
+#' @importFrom stats fitted
+#' @importFrom stats median
+#' @importFrom stats predict
+#' @importFrom stats quantile
+#' @importFrom stats sd
+#' @importFrom stats var
 #--------------------------------------------------
 validann <- function(...) {
 

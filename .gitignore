@@ -1,0 +1,7 @@
+.Rproj.user
+.Rhistory
+.RData
+inst/doc
+data-raw/ar9.R
+aux_files/
+vignettes

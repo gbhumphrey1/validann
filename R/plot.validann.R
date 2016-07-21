@@ -100,6 +100,25 @@
 #' dev.off()
 #'
 #' @export
+#' @importFrom grDevices colors
+#' @importFrom grDevices dev.interactive
+#' @importFrom grDevices devAskNewPage
+#' @importFrom graphics abline
+#' @importFrom graphics hist
+#' @importFrom graphics layout
+#' @importFrom graphics legend
+#' @importFrom graphics lines
+#' @importFrom graphics par
+#' @importFrom graphics plot
+#' @importFrom graphics points
+#' @importFrom graphics title
+#' @importFrom stats acf
+#' @importFrom stats pacf
+#' @importFrom stats dnorm
+#' @importFrom stats qnorm
+#' @importFrom stats qqnorm
+#' @importFrom stats qqplot
+
 #--------------------------------------------------
 plot.validann <- function(x, obs, sim, gof = TRUE, resid = TRUE, sa = TRUE,
                           display = c("multi", "single"),

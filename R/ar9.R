@@ -16,10 +16,11 @@
 #'
 #' @format A data frame with 1000 rows and 16 variables:
 #' \describe{
-#'   \item{x_t-1,x_t-2,x_t-3,x_t-4,x_t-5,x_t-6,x_t-7,x_t-8,x_t-9,x_t-10,x_t-11,x_t-12,x_t-13,x_t-14,x_t-15}{
-#'         lagged values of x_t in columns 1:15}
-#'   \item{x_t}{dependent variable in column 16}
+#'   \item{\code{x_t-k}}{lagged values (\emph{k}=1:15) of \code{x_t} in
+#'         columns 1:15}
+#'   \item{\code{x_t}}{dependent variable in column 16}
 #' }
+#'
 #' @references Sharma, A. (2000), Seasonal to interannual rainfall
 #' probabilistic forecasts for improved water supply management: Part 1 -
 #' a strategy for system predictor identification, Journal of Hydrology,

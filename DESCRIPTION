@@ -1,8 +1,8 @@
 Package: validann
 Type: Package
-Title: Validation tools for artificial neural networks
-Version: 0.0.0.9000
-Date: 2016-07-17
+Title: Validation Tools for Artificial Neural Networks
+Version: 1.0.0
+Date: 2016-07-21
 Authors@R: person("Greer B.", "Humphrey", email = "greer.humphrey@adelaide.edu.au",
                   role = c("aut", "cre"))
 Description: Methods and tools for analysing and validating the outputs

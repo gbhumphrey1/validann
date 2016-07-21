@@ -110,7 +110,10 @@
 #'            objfn = ar1_sse, par_of = 0.7)
 #'
 #' @export
-
+#' @importFrom stats optim
+#' @importFrom stats predict
+#' @importFrom stats residuals
+#' @importFrom stats runif
 #--------------------------------------------------
 ann <- function(x, y, size, act_hid = c("sigmoid", "tanh", "linear", "exp"),
                 act_out = c("linear", "sigmoid", "tanh", "exp"), Wts = NULL,
