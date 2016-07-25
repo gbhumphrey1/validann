@@ -1,12 +1,12 @@
 citHeader("To cite validann in publications use:")
 
 citEntry(entry = "Manual",
-  title        = "validann: Validation tools for artificial neural networks",
+  title        = "validann: Validation Tools for Artificial Neural Networks",
   author       = personList(as.person("Greer B. Humphrey")),
   year         = "2016",
 
   textVersion  =
   paste("Greer B. Humphrey (2016).",
         "validann: Validation tools for artificial neural networks.",
-        "URL http://CRAN.R-project.org/package=validann.")
+        "URL http://cran.r-project.org/web/packages/validann/.")
 )
