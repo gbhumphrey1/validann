@@ -75,7 +75,7 @@
 #'    \eqn{f(x) = e^{x}}{f(x) = exp(x)}
 #'
 #'    The default configuration of activation functions is
-#'    \code{act_hid = "sigmoid"} and \code{act_out = "linear"}.
+#'    \code{act_hid = "tanh"} and \code{act_out = "linear"}.
 #'
 #'    Optimization (minimization) of the objective function (\code{objfn}) is
 #'    performed by \code{\link[stats]{optim}} using the method specified.
@@ -115,7 +115,7 @@
 #' @importFrom stats residuals
 #' @importFrom stats runif
 #--------------------------------------------------
-ann <- function(x, y, size, act_hid = c("sigmoid", "tanh", "linear", "exp"),
+ann <- function(x, y, size, act_hid = c("tanh", "sigmoid", "linear", "exp"),
                 act_out = c("linear", "sigmoid", "tanh", "exp"), Wts = NULL,
                 rang = 0.5, objfn = NULL, method = "BFGS", maxit = 1000,
                 abstol = 1.0e-4, reltol = 1.0e-8, trace = TRUE, ...) {
