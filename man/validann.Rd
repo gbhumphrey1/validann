@@ -80,10 +80,17 @@ list object of class `validann' with components dependent on
    supplied.
 
    If \code{net} is supplied, relative importance values computed using the
-   following 5 methods are returned:
-   Garson's (Garson), connection weight (CW),
-   modified CW (MCW), Profile sensitivity analysis (Profile) and partial
-   derivative sensitivity analysis (PaD).
+   following 4 methods are returned:
+
+   Garson's (Garson); connection weight (CW); Profile sensitivity
+   analysis (Profile); and partial derivative sensitivity analysis (PaD).
+
+   In addition, if \code{net} is of class `ann' (as returned by function
+   \code{\link{ann}}) and the activation function used at the hidden
+   layer (\code{act_hid}) is "tanh", relative importance
+   values computed using the modified CW (MCW) are also returned.
+   This method requires that the hidden layer activation function be
+   symmetric about the origin.
 
    If \code{wts} and \code{nodes} are supplied, only relative importance
    values computed using the Garson and CW methods are returned.

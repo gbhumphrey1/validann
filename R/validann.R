@@ -57,10 +57,17 @@
 #'    supplied.
 #'
 #'    If \code{net} is supplied, relative importance values computed using the
-#'    following 5 methods are returned:
-#'    Garson's (Garson), connection weight (CW),
-#'    modified CW (MCW), Profile sensitivity analysis (Profile) and partial
-#'    derivative sensitivity analysis (PaD).
+#'    following 4 methods are returned:
+#'
+#'    Garson's (Garson); connection weight (CW); Profile sensitivity
+#'    analysis (Profile); and partial derivative sensitivity analysis (PaD).
+#'
+#'    In addition, if \code{net} is of class `ann' (as returned by function
+#'    \code{\link{ann}}) and the activation function used at the hidden
+#'    layer (\code{act_hid}) is "tanh", relative importance
+#'    values computed using the modified CW (MCW) are also returned.
+#'    This method requires that the hidden layer activation function be
+#'    symmetric about the origin.
 #'
 #'    If \code{wts} and \code{nodes} are supplied, only relative importance
 #'    values computed using the Garson and CW methods are returned.
@@ -561,20 +568,22 @@ structural_valid <- function(net, wts = NULL, nodes = NULL, x = NULL) {
       y_hat <- tmp$y_hat
       ri_sa <- tmp$ri
       results$y_hat <- y_hat
+      ri_old <- ri
       ri <- rbind(ri, ri_sa)
-      row.names(ri) <- c(row.names(ri)[1:3], "ri_Profile")
+      row.names(ri) <- c(row.names(ri_old), "ri_Profile")
     # If data$net is of class "ann", perform PD sensitivity analysis
       if (inherits(net, "ann")) {
         tmp <- PaD_sa(net, x)
         results$as <- tmp$as
         results$rs <- tmp$rs
         ri_pdsa <- tmp$ri_pdsa
+        ri_old <- ri
         if(ncol(x) == 1) {
           ri <- rbind(ri, ri_pdsa[1,])
         } else {
           ri <- rbind(ri, ri_pdsa)
         }
-        row.names(ri) <- c(row.names(ri)[1:4], "ri_PaD")
+        row.names(ri) <- c(row.names(ri_old), "ri_PaD")
       } else {
         message3 <-
           "'net' not of class \"ann\" : "
@@ -723,10 +732,14 @@ cw_fn <- function(net, wts = NULL, nodes = NULL) {
       out_ls[["out 1"]] <- wts[(max(indices) + 1):length(wts)]
       ocw <- ocw_mod <- vector()
       for (i in 1:nhn) {
-        ocw_mod <- rbind(ocw_mod, tanh(out_ls[[i]][2:(ninp + 1)]) *
-                           out_ls[[nhn + 1]][i + 1])
         ocw <- rbind(ocw, out_ls[[i]][2:(ninp + 1)] * out_ls[[nhn + 1]][i + 1])
       }
+      ri <- colSums(ocw)
+      ri_denom <- sum(abs(ri))
+      ri <- ri / ri_denom
+      ri <- ri * 100
+
+      return(list(ri_CW = ri))
     } else if (inherits(net, "ann")) {
       nodes <- net$nodes
       nhn <- ifelse(length(nodes) == 3, nodes[2], 0)
@@ -756,18 +769,21 @@ cw_fn <- function(net, wts = NULL, nodes = NULL) {
         ri <- ocw
         ri_mod <- ocw_mod
       }
+      ri_denom <- sum(abs(ri))
+      ri <- ri / ri_denom
+      ri <- ri * 100
+
+      ri_denom <- sum(abs(ri_mod))
+      ri_mod <- ri_mod / ri_denom
+      ri_mod <- ri_mod * 100
+      if(act_fn == "tanh") {
+        return(list(ri_CW = ri, ri_MCW = ri_mod))
+      } else {
+        return(list(ri_CW = ri))
+      }
     } else {
       stop("'net' must be of class \"nnet\" or \"ann\"")
     }
-    ri_denom <- sum(abs(ri))
-    ri <- ri / ri_denom
-    ri <- ri * 100
-
-    ri_denom <- sum(abs(ri_mod))
-    ri_mod <- ri_mod / ri_denom
-    ri_mod <- ri_mod * 100
-
-    return(list(ri_CW = ri, ri_MCW = ri_mod))
   } else if (!is.null(wts) && !is.null(nodes)) {
     nhn <- nodes[2]
     ninp <- nodes[1]
