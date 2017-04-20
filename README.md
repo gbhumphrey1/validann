@@ -15,7 +15,7 @@ install.packages('validann')
 
 Please cite this package as follows:
 
-*Humphrey G.B. (2016) validann: Validation Tools for Artificial Neural Networks. Version 1.0.0. <http://cran.r-project.org/web/packages/validann/>*
+*Humphrey, G.B., Maier, H.R., Wu, W., Mount, N.J., Dandy, G.C., Abrahart, R.J., Dawson, C.W. (2017) Improved validation framework and R-package for artificial neural network models. Environmental Modelling & Software, 92, 82-106. <http://doi.org/10.1016/j.envsoft.2017.01.023>*
 
 ### Functions
 
