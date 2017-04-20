@@ -5,9 +5,7 @@ output: html_document
 ## Resubmission
 This is a resubmission. In this version I have:
 
-* Modified the validann functions 'cw_fn' and 'structural_valid' such that 
-  the MCW input relative importance measure is only returned for models
-  of class 'ann' with "tanh" hidden activation function (file validann.R).
+* Updated the citation information from the package manual to published article.
 
 ## Test environments
 * local Windows 7 install, R 3.2.2 
